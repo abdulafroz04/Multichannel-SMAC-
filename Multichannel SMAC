@@ -1,0 +1,239 @@
+% Parameters
+num_nodes = 10;
+num_channels = 1; % Single channel
+channel_capacity_kbps = 1000; % kilobits per second (1 Mbps)
+packet_arrival_rate = 0.8;
+transmission_time_ms = 50; % milliseconds
+energy_consumption_per_packet_J = 5; % Joules
+simulation_time_ms = 1000; % milliseconds
+duty_cycle = 0.5; % Duty cycle for SMAC (50%)
+
+% Convert parameters to bits per millisecond (bps/ms) for calculation
+channel_capacity_bps = channel_capacity_kbps * 1000; % kbps to bps
+transmission_time_bps_ms = transmission_time_ms * channel_capacity_bps / 1000; % ms to bps/ms
+energy_consumption_per_packet_bps_J = energy_consumption_per_packet_J * 1000; % Joules to mJ
+
+% Initialization
+num_packets = round(simulation_time_ms * packet_arrival_rate);
+received_packets = zeros(num_nodes, 1);
+dropped_packets = zeros(num_nodes, 1);
+average_delay = zeros(num_nodes, 1);
+throughput = zeros(num_nodes, 1);
+energy_consumption = zeros(num_nodes, 1);
+efficiency = zeros(num_nodes, 1);
+node_energy_consumption_single = zeros(num_nodes, 1); % Energy consumption per node in single channel
+
+for node = 1:num_nodes
+    successful_transmissions = 0;
+    total_delay_ms = 0;
+    total_energy_J = 0;
+
+    % SMAC: Implement duty cycling
+    active_time_ms = duty_cycle * simulation_time_ms;
+    for packet = 1:num_packets
+        if rand() < packet_arrival_rate && total_energy_J < active_time_ms * energy_consumption_per_packet_bps_J
+            % Simulate transmission
+            total_delay_ms = total_delay_ms + transmission_time_ms;
+
+            % Update energy consumption
+            total_energy_J = total_energy_J + energy_consumption_per_packet_bps_J;
+             node_energy_consumption_single(node) = node_energy_consumption_single(node) + energy_consumption_per_packet_bps_J;
+
+            successful_transmissions = successful_transmissions + 1;
+            received_packets(node) = received_packets(node) + 1;
+        else
+            dropped_packets(node) = dropped_packets(node) + 1;
+        end
+    end
+
+    average_delay(node) = total_delay_ms / successful_transmissions;
+    throughput(node) = successful_transmissions * transmission_time_bps_ms / simulation_time_ms;
+    energy_consumption(node) = total_energy_J;
+    efficiency(node) = throughput(node) / energy_consumption(node);
+end
+
+% Convert back to kbps and display results
+received_packet_rate_single_channel=mean(received_packets)/simulation_time_ms;
+dropped_packet_rate_single_channel=mean(dropped_packets)/simulation_time_ms;
+avg_energy_single_channel = mean(energy_consumption);
+avg_energy_single_channel_kJ = avg_energy_single_channel / 1000; % J to kJ
+received_packet_rate_single_channel_ppms = received_packet_rate_single_channel * 1000; % packets/ms to packets/s
+dropped_packet_rate_single_channel_ppms = dropped_packet_rate_single_channel * 1000; % packets/ms to packets/s
+avg_delay_ms = mean(average_delay);
+
+% Convert average throughput to kbps or Mbps
+avg_throughput_single_channel_kbps = mean(throughput) / 1000; % bps to kbps
+avg_throughput_single_channel_mbps = avg_throughput_single_channel_kbps / 1000; % kbps to Mbps
+
+% Convert average delay to kbps and Mbps
+avg_delay_kbps = channel_capacity_kbps / avg_delay_ms; % kbps = (kbps) / (ms)
+avg_delay_mbps = avg_delay_kbps / 1000; % Mbps = (kbps) / 1000
+pdr_single_channel = sum(received_packets) / (sum(received_packets) + sum(dropped_packets));
+
+% Metrics for single-channel scenario...
+disp('Metrics for Single-Channel Scenario:');
+disp(['Average Energy Consumption: ', num2str(avg_energy_single_channel_kJ), ' kJ']);
+disp('Average Throughput (Single-Channel):');
+disp(['Kilobits per Second (kbps): ', num2str(avg_throughput_single_channel_kbps)]);
+disp(['Megabits per Second (Mbps): ', num2str(avg_throughput_single_channel_mbps)]);
+disp('Average Delay (Single-Channel):');
+disp(['Kilobits per Second (kbps): ', num2str(avg_delay_kbps)]);
+disp(['Megabits per Second (Mbps): ', num2str(avg_delay_mbps)]);
+disp(['Received Packet Rate: ', num2str(received_packet_rate_single_channel_ppms), ' packets per second']);
+disp(['Dropped Packet Rate: ', num2str(dropped_packet_rate_single_channel_ppms), ' packets per second']);
+disp(['Total energy consumption: ', num2str(total_energy_J),'J']);
+fprintf('Packet Delivery Ratio (PDR) for Single-Channel Scenario: %.2f\n', pdr_single_channel);
+disp(newline);
+
+% received and dropped packets for Single-Channel Scenario
+disp('Received and Dropped Packets for Single-Channel Scenario:');
+for node = 1:num_nodes
+    disp(['Node ', num2str(node), ': Received = ', num2str(received_packets(node)), ', Dropped = ', num2str(dropped_packets(node))]);
+end
+disp(newline);
+
+% Convert back to kJ and display energy consumption at each node
+node_energy_consumption_single_kJ = node_energy_consumption_single / 1000; % mJ to kJ
+
+disp('Energy Consumption at Each Node (Single-Channel):');
+for node = 1:num_nodes
+    disp(['Node ', num2str(node), ': ', num2str(node_energy_consumption_single_kJ(node)), ' kJ']);
+end
+disp(newline);
+
+% Parameters
+num_nodes = 10;
+num_channels = 10; % Multi-channel
+channel_capacity_kbps = 1000; % bits per second
+packet_arrival_rate = 0.8;
+transmission_time_ms = 50; % milliseconds
+energy_consumption_per_packet_J = 5; % Joules
+simulation_time_ms = 1000; % milliseconds
+duty_cycle = 0.8; % Duty cycle for SMAC (50%)
+
+% Convert parameters to bits per millisecond (bps/ms) for calculation
+channel_capacity_bps = channel_capacity_kbps * 1000; % kbps to bps
+transmission_time_bps_ms = transmission_time_ms * channel_capacity_bps / 1000; % ms to bps/ms
+energy_consumption_per_packet_bps_J = energy_consumption_per_packet_J * 1000; % Joules to mJ
+
+% Initialization
+num_packets = round(simulation_time_ms * packet_arrival_rate);
+received_packets = zeros(num_nodes, 1);
+dropped_packets = zeros(num_nodes, 1);
+average_delay = zeros(num_nodes, 1);
+throughput = zeros(num_nodes, 1);
+energy_consumption = zeros(num_nodes, 1);
+efficiency = zeros(num_nodes, 1);
+node_energy_consumption_multi = zeros(num_nodes, 1);  % Energy consumption per node in multi channel
+
+for node = 1:num_nodes
+    successful_transmissions = 0;
+    total_delay_ms = 0;
+    total_energy_J = 0;
+
+    % SMAC: Implement duty cycling
+    active_time_ms = duty_cycle * simulation_time_ms;
+    for packet = 1:num_packets
+        if rand() < packet_arrival_rate && total_energy_J < active_time_ms * energy_consumption_per_packet_bps_J
+            % Simulate transmission
+            total_delay_ms = total_delay_ms + transmission_time_ms;
+
+            % Update energy consumption
+            total_energy_J = total_energy_J + energy_consumption_per_packet_bps_J;
+             node_energy_consumption_multi(node) = node_energy_consumption_multi(node) + energy_consumption_per_packet_bps_J;
+
+            successful_transmissions = successful_transmissions + 1;
+            received_packets(node) = received_packets(node) + 1;
+        else
+            dropped_packets(node) = dropped_packets(node) + 1;
+        end
+    end
+
+    average_delay(node) = total_delay_ms / successful_transmissions;
+    throughput(node) = successful_transmissions * transmission_time_bps_ms / simulation_time_ms;
+    energy_consumption(node) = total_energy_J;
+    efficiency(node) = throughput(node) / energy_consumption(node);
+end
+
+% Convert back to kbps and display results
+received_packet_rate_multi_channel=mean(received_packets)/simulation_time_ms;
+dropped_packet_rate_multi_channel=mean(dropped_packets)/simulation_time_ms;
+avg_energy_multi_channel = mean(energy_consumption);
+avg_energy_multi_channel_kJ = avg_energy_multi_channel / 1000; % J to kJ
+avg_delay_ms = mean(average_delay);
+% Convert average throughput to kbps or Mbps
+avg_throughput_multi_channel_kbps = mean(throughput) / 1000; % bps to kbps
+avg_throughput_multi_channel_mbps = avg_throughput_multi_channel_kbps / 1000; % kbps to Mbps
+
+received_packet_rate_multi_channel_ppms = received_packet_rate_multi_channel * 1000; % packets/ms to packets/s
+dropped_packet_rate_multi_channel_ppms = dropped_packet_rate_multi_channel * 1000; % packets/ms to packets/s
+
+% Convert average delay to kbps and Mbps
+avg_delay_kbps = channel_capacity_kbps / avg_delay_ms; % kbps = (kbps) / (ms)
+avg_delay_mbps = avg_delay_kbps / 1000; % Mbps = (kbps) / 1000
+
+pdr_multi_channel = sum(received_packets) / (sum(received_packets) + sum(dropped_packets));
+
+% Metrics for Multi-channel scenario...
+disp('Metrics for Multi-Channel Scenario:');
+disp(['Average Energy Consumption: ', num2str(avg_energy_multi_channel_kJ), ' kJ']);
+disp('Average Throughput (Multi-Channel):');
+disp(['Kilobits per Second (kbps): ', num2str(avg_throughput_multi_channel_kbps)]);
+disp(['Megabits per Second (Mbps): ', num2str(avg_throughput_multi_channel_mbps)]);
+disp('Average Delay (Multi-Channel):');
+disp(['Kilobits per Second (kbps): ', num2str(avg_delay_kbps)]);
+disp(['Megabits per Second (Mbps): ', num2str(avg_delay_mbps)]);
+disp(['Received Packet Rate: ', num2str(received_packet_rate_multi_channel_ppms), ' packets per second']);
+disp(['Dropped Packet Rate: ', num2str(dropped_packet_rate_multi_channel_ppms), ' packets per second']);
+disp(['Total energy consumption: ', num2str(total_energy_J),'J']);
+fprintf('Packet Delivery Ratio (PDR) for Multi-Channel Scenario: %.2f\n', pdr_multi_channel);
+disp(newline);
+
+% received and dropped packets for Multichannel Scenario
+disp('Received and Dropped Packets for Multichannel Scenario:');
+for node = 1:num_nodes
+    disp(['Node ', num2str(node), ': Received = ', num2str(received_packets(node)), ', Dropped = ', num2str(dropped_packets(node))]);
+end
+disp(newline);
+
+% Convert back to kJ and display energy consumption at each node
+node_energy_consumption_multi_kJ = node_energy_consumption_multi / 1000;   % mJ to kJ
+
+
+disp('Energy Consumption at Each Node (Multi-Channel):');
+for node = 1:num_nodes
+    disp(['Node ', num2str(node), ': ', num2str(node_energy_consumption_multi_kJ(node)), ' kJ']);
+end
+disp(newline);
+
+% Plotting
+
+% Metrics comparison plot
+figure;
+subplot(4,1,1);
+plot(1:num_nodes, energy_consumption, 'o-', 1:num_nodes, repmat(avg_energy_single_channel, 1, num_nodes), '--');
+xlabel('Node');
+ylabel('Energy Consumption (Joules)');
+legend('SMAC Multi Channel', 'SMAC Single Channel', 'Location', 'best');
+title('Energy Consumption Comparison');
+
+subplot(4,1,2);
+plot(1:num_nodes, throughput, 'o-', 1:num_nodes, repmat(avg_throughput_single_channel_kbps, 1, num_nodes), '--');
+xlabel('Node');
+ylabel('Throughput (bits/s)');
+legend('SMAC Multi Channel', 'SMAC Single Channel', 'Location', 'best');
+title('Throughput Comparison');
+
+subplot(4,1,3);
+plot(1:num_nodes, received_packets / simulation_time_ms, 'o-', 1:num_nodes, repmat(received_packet_rate_single_channel, 1, num_nodes), '--');
+xlabel('Node');
+ylabel('Received Packet Rate (packets/ms)');
+legend('SMAC Multi Channel', 'SMAC Single Channel', 'Location', 'best');
+title('Received Packet Rate Comparison');
+
+subplot(4,1,4);
+plot(1:num_nodes, dropped_packets / simulation_time_ms, 'o-', 1:num_nodes, repmat(dropped_packet_rate_single_channel, 1, num_nodes), '--');
+xlabel('Node');
+ylabel('Dropped Packet Rate (packets/ms)');
+legend('SMAC Multi Channel', 'SMAC Single Channel', 'Location', 'best');
+title('Dropped Packet Rate Comparison');
